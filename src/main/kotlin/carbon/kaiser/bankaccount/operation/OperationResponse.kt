@@ -1,4 +1,4 @@
-package carbon.kaiser.bankaccount
+package carbon.kaiser.bankaccount.operation
 
 import java.math.BigDecimal
 
