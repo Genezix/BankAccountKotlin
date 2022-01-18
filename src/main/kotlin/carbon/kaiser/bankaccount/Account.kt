@@ -4,37 +4,34 @@ import carbon.kaiser.bankaccount.display.StatementPrinter
 import carbon.kaiser.bankaccount.operation.Operation
 import carbon.kaiser.bankaccount.operation.OperationRepository
 import carbon.kaiser.bankaccount.operation.OperationResponse
+import carbon.kaiser.bankaccount.operation.OperationResponse.Error.NegativeAmountError
+import carbon.kaiser.bankaccount.operation.OperationResponse.Error.NotEnoughMoneyError
 import java.math.BigDecimal
 import java.time.Clock
 
 class Account(private val operationRepository: OperationRepository, private val clock: Clock = Clock.systemUTC()) {
     fun deposit(amount: BigDecimal): OperationResponse {
         if (amount <= BigDecimal.ZERO) {
-            return OperationResponse.Failed("Deposit negative amount : $amount")
+            return NegativeAmountError(amount)
         }
 
-        val newBalance = when (val balanceResponse = getBalance()) {
-            is OperationResponse.Failed -> return balanceResponse
-            is OperationResponse.Success -> balanceResponse.balance.add(amount)
-        }
+        val newBalance = getBalance().add(amount)
 
         operationRepository.add(Operation.Deposit(amount, newBalance, clock.millis()))
 
-        return OperationResponse.Success(amount)
+        return OperationResponse.Success(newBalance)
     }
 
     fun withdrawal(amount: BigDecimal): OperationResponse {
         if (amount <= BigDecimal.ZERO) {
-            return OperationResponse.Failed("Withdrawal negative amount : $amount")
+            return NegativeAmountError(amount)
         }
 
-        val newBalance = when (val balanceResponse = getBalance()) {
-            is OperationResponse.Failed -> return balanceResponse
-            is OperationResponse.Success -> balanceResponse.balance.subtract(amount)
-        }
+        val currentBalance = getBalance()
+        val newBalance = currentBalance.subtract(amount)
 
         if (newBalance < BigDecimal.ZERO) {
-            return OperationResponse.Failed("Withdrawal negative balance : $newBalance")
+            return NotEnoughMoneyError(amount, currentBalance)
         }
 
         operationRepository.add(Operation.Withdrawal(amount, newBalance, clock.millis()))
@@ -42,10 +39,8 @@ class Account(private val operationRepository: OperationRepository, private val 
         return OperationResponse.Success(newBalance)
     }
 
-    fun getBalance(): OperationResponse {
-        val lastOperation = operationRepository.getLast()
-        val balance = if (lastOperation.isEmpty) BigDecimal.ZERO else lastOperation.get().newBalance
-        return OperationResponse.Success(balance)
+    fun getBalance(): BigDecimal = with(operationRepository.getLast()) {
+        if (isEmpty) BigDecimal.ZERO else get().newBalance
     }
 
     fun printStatement(printer: StatementPrinter) {

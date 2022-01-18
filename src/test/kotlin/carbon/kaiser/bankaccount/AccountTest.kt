@@ -4,6 +4,8 @@ import carbon.kaiser.bankaccount.display.StatementPrinter
 import carbon.kaiser.bankaccount.operation.Operation
 import carbon.kaiser.bankaccount.operation.OperationRepository
 import carbon.kaiser.bankaccount.operation.OperationResponse
+import carbon.kaiser.bankaccount.operation.OperationResponse.Error.NegativeAmountError
+import carbon.kaiser.bankaccount.operation.OperationResponse.Error.NotEnoughMoneyError
 import io.mockk.*
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
@@ -61,14 +63,14 @@ class AccountTest {
 
     @ParameterizedTest
     @MethodSource("notValidAmounts")
-    fun `GIVEN Account WHEN deposit negative amount of money THEN return operation failed`(
+    fun `GIVEN Account WHEN deposit negative amount of money THEN return operation error NegativeAmountError`(
         amount: BigDecimal
     ) {
         // WHEN
         val response = account.deposit(amount)
 
         // THEN
-        assertIs<OperationResponse.Failed>(response)
+        assertIs<NegativeAmountError>(response)
         verify { operationRepository wasNot Called }
     }
 
@@ -88,7 +90,7 @@ class AccountTest {
 
         // THEN
         assertIs<OperationResponse.Success>(response)
-        assertTrue { response.balance.compareTo(BigDecimal.ZERO) == 0 }
+        assertTrue { response.newBalance.compareTo(BigDecimal.ZERO) == 0 }
         verifySequence {
             operationRepository.getLast()
             operationRepository.add(any())
@@ -96,14 +98,14 @@ class AccountTest {
     }
 
     @Test
-    fun `GIVEN Account with money WHEN withdrawal all money THEN return operation success with balance == ZERO`() {
+    fun `GIVEN Account without money WHEN withdrawal 10 THEN return operation error NotEnoughMoneyError`() {
         every { operationRepository.getLast() } returns Optional.empty()
 
         // WHEN
         val response = account.withdrawal(BigDecimal("10.0"))
 
         // THEN
-        assertIs<OperationResponse.Failed>(response)
+        assertIs<NotEnoughMoneyError>(response)
         verifySequence {
             operationRepository.getLast()
         }
@@ -111,14 +113,14 @@ class AccountTest {
 
     @ParameterizedTest
     @MethodSource("notValidAmounts")
-    fun `GIVEN Account WHEN withdrawal negative amount of money THEN return operation failed`(
+    fun `GIVEN Account WHEN withdrawal negative amount of money THEN return operation error NegativeAmountError`(
         amount: BigDecimal
     ) {
         // WHEN
         val response = account.withdrawal(amount)
 
         // THEN
-        assertIs<OperationResponse.Failed>(response)
+        assertIs<NegativeAmountError>(response)
     }
 
     @ParameterizedTest
@@ -132,11 +134,10 @@ class AccountTest {
         every { operationRepository.getLast() } returns Optional.of(operation)
 
         // WHEN
-        val response = account.getBalance()
+        val newBalance = account.getBalance()
 
         // THEN
-        assertIs<OperationResponse.Success>(response)
-        assertEquals(balance, response.balance)
+        assertEquals(balance, newBalance)
         verifySequence {
             operationRepository.getLast()
         }
@@ -147,11 +148,10 @@ class AccountTest {
         every { operationRepository.getLast() } returns Optional.empty()
 
         // WHEN
-        val response = account.getBalance()
+        val newBalance = account.getBalance()
 
         // THEN
-        assertIs<OperationResponse.Success>(response)
-        assertEquals(BigDecimal.ZERO, response.balance)
+        assertEquals(BigDecimal.ZERO, newBalance)
         verifySequence {
             operationRepository.getLast()
         }
