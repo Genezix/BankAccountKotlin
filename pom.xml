@@ -18,6 +18,7 @@
         <kotlin.version>1.6.10</kotlin.version>
         <junit.version>5.8.2</junit.version>
         <mockk.version>1.12.2</mockk.version>
+        <surefire.version>2.22.1</surefire.version>
     </properties>
 
     <repositories>
@@ -52,6 +53,11 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${surefire.version}</version>
             </plugin>
         </plugins>
     </build>
