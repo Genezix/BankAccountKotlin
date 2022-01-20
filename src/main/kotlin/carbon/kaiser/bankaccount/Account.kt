@@ -1,11 +1,11 @@
 package carbon.kaiser.bankaccount
 
 import carbon.kaiser.bankaccount.display.StatementPrinter
-import carbon.kaiser.bankaccount.operation.Operation
-import carbon.kaiser.bankaccount.operation.OperationRepository
-import carbon.kaiser.bankaccount.operation.OperationResponse
-import carbon.kaiser.bankaccount.operation.OperationResponse.Error.NegativeAmountError
-import carbon.kaiser.bankaccount.operation.OperationResponse.Error.NotEnoughMoneyError
+import carbon.kaiser.bankaccount.model.Operation
+import carbon.kaiser.bankaccount.model.OperationRepository
+import carbon.kaiser.bankaccount.model.OperationResponse
+import carbon.kaiser.bankaccount.model.OperationResponse.Error.NegativeAmountError
+import carbon.kaiser.bankaccount.model.OperationResponse.Error.NotEnoughMoneyError
 import java.math.BigDecimal
 import java.time.Clock
 
@@ -22,7 +22,7 @@ class Account(private val operationRepository: OperationRepository, private val 
         return OperationResponse.Success(newBalance)
     }
 
-    fun withdrawal(amount: BigDecimal): OperationResponse {
+    fun withdraw(amount: BigDecimal): OperationResponse {
         if (amount <= BigDecimal.ZERO) {
             return NegativeAmountError(amount)
         }
@@ -39,9 +39,7 @@ class Account(private val operationRepository: OperationRepository, private val 
         return OperationResponse.Success(newBalance)
     }
 
-    fun getBalance(): BigDecimal = with(operationRepository.getLast()) {
-        if (isEmpty) BigDecimal.ZERO else get().newBalance
-    }
+    fun getBalance(): BigDecimal = operationRepository.getLast()?.newBalance ?: BigDecimal.ZERO
 
     fun printStatement(printer: StatementPrinter) {
         val operations = operationRepository.findAll()

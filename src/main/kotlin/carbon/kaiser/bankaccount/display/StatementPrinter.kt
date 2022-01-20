@@ -1,7 +1,7 @@
 package carbon.kaiser.bankaccount.display
 
-import carbon.kaiser.bankaccount.operation.Operation
+import carbon.kaiser.bankaccount.model.Operation
 
-interface StatementPrinter {
+fun interface StatementPrinter {
     fun printStatement(operations: List<Operation>)
 }

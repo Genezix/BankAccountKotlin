@@ -1,11 +1,11 @@
 package carbon.kaiser.bankaccount
 
 import carbon.kaiser.bankaccount.display.StatementPrinter
-import carbon.kaiser.bankaccount.operation.Operation
-import carbon.kaiser.bankaccount.operation.OperationRepository
-import carbon.kaiser.bankaccount.operation.OperationResponse
-import carbon.kaiser.bankaccount.operation.OperationResponse.Error.NegativeAmountError
-import carbon.kaiser.bankaccount.operation.OperationResponse.Error.NotEnoughMoneyError
+import carbon.kaiser.bankaccount.model.Operation
+import carbon.kaiser.bankaccount.model.OperationRepository
+import carbon.kaiser.bankaccount.model.OperationResponse
+import carbon.kaiser.bankaccount.model.OperationResponse.Error.NegativeAmountError
+import carbon.kaiser.bankaccount.model.OperationResponse.Error.NotEnoughMoneyError
 import io.mockk.*
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
@@ -17,7 +17,6 @@ import java.math.BigDecimal
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneId
-import java.util.*
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
@@ -47,8 +46,9 @@ class AccountTest {
     fun `GIVEN Account WHEN deposit positive amount of money THEN return operation success`(
         amount: BigDecimal
     ) {
-        every { operationRepository.getLast() } returns Optional.empty()
-        every { operationRepository.add(any()) } returns Unit
+        val deposit = Operation.Deposit(amount, amount, clockMillis)
+        every { operationRepository.getLast() } returns null
+        every { operationRepository.add(deposit) } returns Unit
 
         // WHEN
         val response = account.deposit(amount)
@@ -57,7 +57,7 @@ class AccountTest {
         assertIs<OperationResponse.Success>(response)
         verifySequence {
             operationRepository.getLast()
-            operationRepository.add(any())
+            operationRepository.add(deposit)
         }
     }
 
@@ -71,6 +71,7 @@ class AccountTest {
 
         // THEN
         assertIs<NegativeAmountError>(response)
+        assertEquals("Amount should be positive : $amount", response.reason)
         verify { operationRepository wasNot Called }
     }
 
@@ -82,30 +83,32 @@ class AccountTest {
         val operation = mockk<Operation> {
             every { newBalance } returns amount
         }
-        every { operationRepository.getLast() } returns Optional.of(operation)
-        every { operationRepository.add(any()) } returns Unit
+        val withdrawal = Operation.Withdrawal(amount, amount.subtract(amount), clockMillis)
+        every { operationRepository.getLast() } returns operation
+        every { operationRepository.add(withdrawal) } returns Unit
 
         // WHEN
-        val response = account.withdrawal(amount)
+        val response = account.withdraw(amount)
 
         // THEN
         assertIs<OperationResponse.Success>(response)
         assertTrue { response.newBalance.compareTo(BigDecimal.ZERO) == 0 }
         verifySequence {
             operationRepository.getLast()
-            operationRepository.add(any())
+            operationRepository.add(withdrawal)
         }
     }
 
     @Test
     fun `GIVEN Account without money WHEN withdrawal 10 THEN return operation error NotEnoughMoneyError`() {
-        every { operationRepository.getLast() } returns Optional.empty()
+        every { operationRepository.getLast() } returns null
 
         // WHEN
-        val response = account.withdrawal(BigDecimal("10.0"))
+        val response = account.withdraw(BigDecimal("10.0"))
 
         // THEN
         assertIs<NotEnoughMoneyError>(response)
+        assertEquals("Tried to withdraw 10.0 but the account contains only 0", response.reason)
         verifySequence {
             operationRepository.getLast()
         }
@@ -117,10 +120,12 @@ class AccountTest {
         amount: BigDecimal
     ) {
         // WHEN
-        val response = account.withdrawal(amount)
+        val response = account.withdraw(amount)
 
         // THEN
         assertIs<NegativeAmountError>(response)
+        assertEquals("Amount should be positive : $amount", response.reason)
+        verify { operationRepository wasNot Called }
     }
 
     @ParameterizedTest
@@ -131,7 +136,7 @@ class AccountTest {
         val operation = mockk<Operation> {
             every { newBalance } returns balance
         }
-        every { operationRepository.getLast() } returns Optional.of(operation)
+        every { operationRepository.getLast() } returns operation
 
         // WHEN
         val newBalance = account.getBalance()
@@ -145,7 +150,7 @@ class AccountTest {
 
     @Test
     fun `GIVEN Account without operation WHEN get balance THEN return operation success with balance == ZERO`() {
-        every { operationRepository.getLast() } returns Optional.empty()
+        every { operationRepository.getLast() } returns null
 
         // WHEN
         val newBalance = account.getBalance()
@@ -162,7 +167,7 @@ class AccountTest {
         val operations: List<Operation> = listOf(mockk(), mockk())
         val printer: StatementPrinter = mockk()
         every { operationRepository.findAll() } returns operations
-        every { printer.printStatement(any()) } returns Unit
+        every { printer.printStatement(operations) } returns Unit
 
         // WHEN
         account.printStatement(printer)

@@ -1,11 +1,9 @@
-package carbon.kaiser.bankaccount.operation
-
-import java.util.*
+package carbon.kaiser.bankaccount.model
 
 interface OperationRepository {
     fun add(operation: Operation)
 
     fun findAll(): List<Operation>
 
-    fun getLast(): Optional<Operation>
+    fun getLast(): Operation?
 }
