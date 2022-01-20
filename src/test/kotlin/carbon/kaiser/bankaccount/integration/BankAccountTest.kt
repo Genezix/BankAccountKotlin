@@ -50,12 +50,12 @@ class BankAccountTest {
 
         val expectedStatement = StringBuilder()
             .append("Date             | Amount  | Balance " + System.lineSeparator())
-            .append("01-01-1970 01:00 | +100.05 | 100.05  " + System.lineSeparator())
-            .append("01-01-1970 01:00 | +2000   | 2100.05 " + System.lineSeparator())
-            .append("01-01-1970 01:00 | +30000  | 32100.05" + System.lineSeparator())
-            .append("01-01-1970 01:00 | -1.02   | 32099.03" + System.lineSeparator())
-            .append("01-01-1970 01:00 | -10     | 32089.03" + System.lineSeparator())
-            .append("01-01-1970 01:00 | -100    | 31989.03" + System.lineSeparator())
+            .append("01-01-1970 00:00 | +100.05 | 100.05  " + System.lineSeparator())
+            .append("01-01-1970 00:00 | +2000   | 2100.05 " + System.lineSeparator())
+            .append("01-01-1970 00:00 | +30000  | 32100.05" + System.lineSeparator())
+            .append("01-01-1970 00:00 | -1.02   | 32099.03" + System.lineSeparator())
+            .append("01-01-1970 00:00 | -10     | 32089.03" + System.lineSeparator())
+            .append("01-01-1970 00:00 | -100    | 31989.03" + System.lineSeparator())
             .toString()
 
         // deposits
@@ -115,7 +115,7 @@ private class StatementPrinterTest : StatementPrinter {
 
     private fun Long.toLocalDateTime(): LocalDateTime = LocalDateTime.ofInstant(
         Instant.ofEpochSecond(this / 1000),
-        ZoneId.systemDefault()
+        ZoneOffset.UTC
     )
 }
 
